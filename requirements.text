@@ -1,5 +1,5 @@
-import pandas as pd
+ pandas 
 streamlit
-import matplotlib as plt
-import seaborn as sns
+matplotlib 
+seaborn 
 
