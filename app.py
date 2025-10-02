@@ -1,82 +1,62 @@
-# streamlit_app.py
-
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 
-# --------------------
-# 1. Load Data
-# --------------------
-st.title("📊 High-Level & Interpretable EDA Dashboard")
+# Load dataset
+st.title("📊 High-Level EDA Dashboard")
+st.write("Exploratory Data Analysis with Streamlit")
 
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
-if uploaded_file is not None:
+if uploaded_file:
     df = pd.read_csv(uploaded_file)
+    st.success("✅ File uploaded successfully!")
+    
+    # Show dataset preview
+    st.subheader("🔎 Dataset Preview")
+    st.dataframe(df.head())
 
-    # --------------------
-    # 2. Basic Info
-    # --------------------
-    st.subheader("Dataset Overview")
-    st.write("Shape of dataset:", df.shape)
-    st.write("Column names:", df.columns.tolist())
+    # Basic Info
+    st.subheader("📑 Dataset Information")
+    st.write(f"Shape: {df.shape[0]} rows × {df.shape[1]} columns")
+    st.write("Column Names:", list(df.columns))
 
-    st.write("Data Types:")
-    st.write(df.dtypes)
-
-    st.write("Missing Values:")
-    st.write(df.isnull().sum())
-
-    # --------------------
-    # 3. Summary Stats
-    # --------------------
-    st.subheader("Summary Statistics")
-    st.write("Numeric Columns")
+    # Summary Statistics
+    st.subheader("📈 Summary Statistics (Numeric Columns)")
     st.write(df.describe())
 
-    st.write("Categorical Columns")
-    st.write(df.describe(include="object"))
+    # Drop ID-like columns before correlation
+    id_columns = ['order_id', 'customer_id', 'product_id']
+    df_corr = df.drop(columns=[col for col in id_columns if col in df.columns], errors="ignore")
 
-    # --------------------
-    # 4. Correlation Heatmap
-    # --------------------
-    st.subheader("Correlation Heatmap")
-    numeric_df = df.select_dtypes(include=["int64", "float64"])
-    if not numeric_df.empty:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(numeric_df.corr(), annot=True, cmap="viridis", ax=ax)
+    # Correlation Heatmap
+    if not df_corr.empty:
+        st.subheader("🔗 Correlation Heatmap (without ID columns)")
+        fig, ax = plt.subplots(figsize=(8,6))
+        sns.heatmap(df_corr.corr(), annot=True, cmap="viridis", ax=ax, fmt=".2f")
         st.pyplot(fig)
+    else:
+        st.warning("⚠️ No numeric columns available for correlation after removing IDs.")
 
-    # --------------------
-    # 5. Distribution of Variables
-    # --------------------
-    st.subheader("Distribution of Numeric Columns")
-    column = st.selectbox("Select a numeric column", numeric_df.columns if not numeric_df.empty else [])
-    if column:
+    # Distribution of numeric columns
+    st.subheader("📊 Distribution of Numeric Features")
+    numeric_cols = df_corr.select_dtypes(include=['int64','float64']).columns
+    if len(numeric_cols) > 0:
+        col_choice = st.selectbox("Select column for distribution plot:", numeric_cols)
         fig, ax = plt.subplots()
-        sns.histplot(df[column], kde=True, ax=ax)
+        sns.histplot(df[col_choice], kde=True, ax=ax, color="skyblue")
         st.pyplot(fig)
+    else:
+        st.warning("⚠️ No numeric columns available for distribution plots.")
 
-    # --------------------
-    # 6. Boxplot for Outliers
-    # --------------------
-    st.subheader("Outlier Detection (Boxplot)")
-    if column:
+    # Categorical column counts
+    st.subheader("🧾 Value Counts for Categorical Columns")
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    if len(categorical_cols) > 0:
+        cat_choice = st.selectbox("Select column for value count plot:", categorical_cols)
         fig, ax = plt.subplots()
-        sns.boxplot(x=df[column], ax=ax)
+        sns.countplot(x=cat_choice, data=df, palette="Set2", ax=ax)
+        plt.xticks(rotation=45)
         st.pyplot(fig)
-
-    # --------------------
-    # 7. Categorical Analysis
-    # --------------------
-    st.subheader("Categorical Analysis")
-    cat_cols = df.select_dtypes(include=["object"]).columns
-    if len(cat_cols) > 0:
-        cat_col = st.selectbox("Select a categorical column", cat_cols)
-        fig, ax = plt.subplots()
-        df[cat_col].value_counts().plot(kind="bar", ax=ax)
-        ax.set_title(f"Frequency of {cat_col}")
-        st.pyplot(fig)
-
-else:
-    st.info("👆 Upload a CSV file to start the analysis.")
+    else:
+        st.warning("⚠️ No categorical columns available for count plots.")
