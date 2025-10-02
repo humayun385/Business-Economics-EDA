@@ -29,20 +29,22 @@ if uploaded_file:
     id_columns = ['order_id', 'customer_id', 'product_id']
     df_corr = df.drop(columns=[col for col in id_columns if col in df.columns], errors="ignore")
 
+    # Select only numeric columns for correlation
+    numeric_df = df_corr.select_dtypes(include=['int64', 'float64'])
+
     # Correlation Heatmap
-    if not df_corr.empty:
-        st.subheader("🔗 Correlation Heatmap (without ID columns)")
+    if not numeric_df.empty:
+        st.subheader("🔗 Correlation Heatmap (Numeric features only, no IDs)")
         fig, ax = plt.subplots(figsize=(8,6))
-        sns.heatmap(df_corr.corr(), annot=True, cmap="viridis", ax=ax, fmt=".2f")
+        sns.heatmap(numeric_df.corr(), annot=True, cmap="viridis", ax=ax, fmt=".2f")
         st.pyplot(fig)
     else:
         st.warning("⚠️ No numeric columns available for correlation after removing IDs.")
 
     # Distribution of numeric columns
     st.subheader("📊 Distribution of Numeric Features")
-    numeric_cols = df_corr.select_dtypes(include=['int64','float64']).columns
-    if len(numeric_cols) > 0:
-        col_choice = st.selectbox("Select column for distribution plot:", numeric_cols)
+    if len(numeric_df.columns) > 0:
+        col_choice = st.selectbox("Select column for distribution plot:", numeric_df.columns)
         fig, ax = plt.subplots()
         sns.histplot(df[col_choice], kde=True, ax=ax, color="skyblue")
         st.pyplot(fig)
